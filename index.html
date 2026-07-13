@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Soccer Chess Ultimate ⚽♚</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --accent: #3498db;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --purple: #8e44ad;
+            --text: #c9d1d9;
+            --text-dim: #8b949e;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        /* ===== LAYOUT: sidebar + board ===== */
+        #app {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* Header spans full width */
+        #header {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        #header h1 {
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 12px rgba(52,152,219,0.6);
+            white-space: nowrap;
+        }
+
+        #statusMsg {
+            font-size: clamp(0.65rem, 1.5vw, 0.8rem);
+            color: var(--text-dim);
+            text-align: left;
+            flex: 1;
+            padding: 0 12px;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            grid-column: 1;
+            grid-row: 2;
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Board area */
+        #board-area {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: var(--bg);
+        }
+
+        canvas {
+            display: block;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            border: 2px solid var(--border);
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        /* ===== SIDEBAR CARDS ===== */
+        .card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .card h3 {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        /* ===== BUTTONS ===== */
+        button {
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.82rem;
+            padding: 8px 10px;
+            margin: 3px 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #fff;
+            background: var(--accent);
+            width: 100%;
+            display: block;
+            text-align: center;
+        }
+
+        button:hover { opacity: 0.85; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        #endTurnBtn    { background: var(--danger); }
+        #backToMenuBtn { background: #444; }
+        #toggleUnsafeBtn { background: var(--purple); }
+        #aiVsAiBtn     { background: linear-gradient(135deg, #2c3e50, #8e44ad); }
+        #playVsAIPawnBtn { background: var(--purple); }
+        #coinFlipBtn   { background: var(--success); display: none; }
+
+        /* Piece buttons */
+        .piece-btn {
+            font-size: 1.4rem;
+            width: 42px;
+            height: 42px;
+            background: #30363d;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2px;
+            padding: 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .piece-btn:hover { background: #484f58; }
+        .piece-btn.active { border-color: var(--success); background: #1a2e1a; }
+
+        #piece-buttons-container { display: flex; flex-wrap: wrap; gap: 2px; }
+
+        /* AI style label */
+        #aiStyleLabel {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 6px 8px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #0f2010, #0f1820);
+            border: 1px solid var(--success);
+            color: var(--success);
+            display: none;
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        #aiVsAiStatus {
+            display: none;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            padding: 5px;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            margin-top: 4px;
+        }
+
+        /* ===== MOBILE: stack vertically ===== */
+        @media (max-width: 600px) {
+            html, body { overflow: auto; }
+
+            #app {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+            }
+
+            #header {
+                flex-direction: column;
+                gap: 4px;
+                padding: 8px;
+                text-align: center;
+            }
+
+            #statusMsg {
+                font-size: 0.7rem;
+                padding: 0;
+                text-align: center;
+            }
+
+            #board-area {
+                order: 1;
+                padding: 8px;
+            }
+
+            #sidebar {
+                order: 2;
+                border-left: none;
+                border-top: 1px solid var(--border);
+                padding: 10px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 8px;
+                overflow-y: visible;
+            }
+
+            #sidebar .card {
+                flex: 1 1 140px;
+                min-width: 130px;
+            }
+
+            button { font-size: 0.78rem; padding: 7px 8px; }
+        }
+
+        /* ===== SETUP OVERLAY ===== */
+        #setup-overlay { display: none; }
+        #controls { display: none; }
+    </style>
+</head>
+<body>
+<div id="app">
+
+    <!-- Header -->
+    <header id="header">
+        <h1>⚽ Soccer Chess Ultimate ♚</h1>
+        <div id="statusMsg">اختر طور اللعب للبدء</div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+
+        <!-- Menu Card -->
+        <div class="card" id="menuCard">
+            <h3>أطوار اللعب</h3>
+            <button id="onlyMoveBtn">⚔️ ONLY_MOVE (ضد صديق)</button>
+            <button id="pawnModeBtn">♟️ طور البيادق</button>
+            <button id="playVsAIBtn">🤖 ضد الكمبيوتر (AI)</button>
+            <button id="playVsAIPawnBtn">♟️🤖 بيادق ضد AI</button>
+            <button id="aiVsAiBtn">🤖🤖 AI vs AI</button>
+        </div>
+
+        <button id="coinFlipBtn">بدء التوزيع (الأبيض يبدأ)</button>
+
+        <!-- Setup Piece Selector -->
+        <div class="card" id="setup-overlay">
+            <h3>اختر القطعة</h3>
+            <p id="setup-hint" style="font-size:0.72rem;color:var(--text-dim);margin-bottom:6px;">أول قطعة على الكرة.</p>
+            <div id="piece-buttons-container">
+                <button class="piece-btn" data-type="Q" title="ملكة">♛</button>
+                <button class="piece-btn" data-type="R" title="رخ">♜</button>
+                <button class="piece-btn" data-type="B" title="فيل">♝</button>
+                <button class="piece-btn" data-type="N" title="حصان">♞</button>
+                <button class="piece-btn" data-type="P" title="بيدق">♟</button>
+                <button class="piece-btn" data-type="S" title="بيدق مميز">✨♟</button>
+            </div>
+        </div>
+
+        <!-- Controls Card -->
+        <div class="card" id="controls">
+            <h3>التحكم</h3>
+            <button id="endTurnBtn">⏭️ إنهاء الدور</button>
+            <button id="toggleUnsafeBtn">🔴 المربعات الخطرة</button>
+            <button id="backToMenuBtn">🏠 القائمة الرئيسية</button>
+            <div id="aiStyleLabel"></div>
+            <div id="aiVsAiStatus"></div>
+        </div>
+
+    </aside>
+
+    <!-- Board -->
+    <main id="board-area">
+        <canvas id="gameBoard"></canvas>
+    </main>
+
+</div>
+<script src="script.js"></script>
+</body>
+</html>
